@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .database import Base, engine
+from .routers import employees, insights
 
 app = FastAPI(title="Salary Management System API")
 
@@ -22,3 +23,7 @@ def on_startup():
 @app.get("/health")
 def health():
     return {"status": "ok"}
+
+
+app.include_router(employees.router)
+app.include_router(insights.router)
