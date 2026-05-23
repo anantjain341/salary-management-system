@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 from app.database import get_db
 from app.schemas import EmployeeCreate, EmployeeResponse
 from app.services.employee_service import (
+    count_employees,
     create_employee,
     delete_employee,
     get_all_employees,
@@ -24,6 +25,11 @@ def create(payload: EmployeeCreate, db: Session = Depends(get_db)):
 @router.get("", response_model=List[EmployeeResponse])
 def list_all(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
     return get_all_employees(db, skip=skip, limit=limit)
+
+
+@router.get("/count")
+def count(db: Session = Depends(get_db)):
+    return {"total": count_employees(db)}
 
 
 @router.get("/{employee_id}", response_model=EmployeeResponse)

@@ -102,6 +102,16 @@ def test_get_top_paying_titles_via_api(client):
     assert isinstance(response.json(), list)
 
 
+def test_get_employees_count_via_api(client):
+    client.post("/employees", json=_employee_payload(email="a@example.com"))
+    client.post("/employees", json=_employee_payload(email="b@example.com"))
+
+    response = client.get("/employees/count")
+
+    assert response.status_code == 200
+    assert response.json() == {"total": 2}
+
+
 def test_get_department_breakdown_via_api(client):
     client.post("/employees", json=_employee_payload(
         email="eng@example.com", department="Engineering", salary=70000

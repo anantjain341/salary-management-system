@@ -15,7 +15,17 @@ def get_employee_by_id(db, employee_id: str):
 
 
 def get_all_employees(db, skip: int = 0, limit: int = 10):
-    return db.query(Employee).offset(skip).limit(limit).all()
+    return (
+        db.query(Employee)
+        .order_by(Employee.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+
+def count_employees(db) -> int:
+    return db.query(Employee).count()
 
 
 def update_employee(db, employee_id: str, update_data: dict):

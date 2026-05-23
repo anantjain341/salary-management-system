@@ -7,6 +7,7 @@ from app.services.employee_service import (
     get_all_employees,
     update_employee,
     delete_employee,
+    count_employees,
 )
 
 
@@ -82,3 +83,32 @@ def test_get_employee_by_id_returns_none_for_missing_id(db_session):
     result = get_employee_by_id(db_session, "nonexistent-id")
 
     assert result is None
+
+
+def test_get_all_employees_returns_newest_first(db_session):
+    from datetime import datetime, timedelta
+
+    base = datetime(2024, 1, 1, 12, 0, 0)
+    create_employee(db_session, _valid_employee_data(
+        full_name="First", email="first@example.com", created_at=base
+    ))
+    create_employee(db_session, _valid_employee_data(
+        full_name="Second", email="second@example.com",
+        created_at=base + timedelta(hours=1),
+    ))
+    create_employee(db_session, _valid_employee_data(
+        full_name="Third", email="third@example.com",
+        created_at=base + timedelta(hours=2),
+    ))
+
+    results = get_all_employees(db_session, skip=0, limit=10)
+
+    assert [e.full_name for e in results] == ["Third", "Second", "First"]
+
+
+def test_count_employees_returns_total(db_session):
+    create_employee(db_session, _valid_employee_data(email="a@example.com"))
+    create_employee(db_session, _valid_employee_data(email="b@example.com"))
+    create_employee(db_session, _valid_employee_data(email="c@example.com"))
+
+    assert count_employees(db_session) == 3
