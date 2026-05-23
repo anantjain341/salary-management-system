@@ -100,3 +100,22 @@ def test_get_top_paying_titles_via_api(client):
 
     assert response.status_code == 200
     assert isinstance(response.json(), list)
+
+
+def test_get_department_breakdown_via_api(client):
+    client.post("/employees", json=_employee_payload(
+        email="eng@example.com", department="Engineering", salary=70000
+    ))
+    client.post("/employees", json=_employee_payload(
+        email="sales@example.com", department="Sales", salary=50000
+    ))
+
+    response = client.get("/insights/department-breakdown")
+
+    assert response.status_code == 200
+    body = response.json()
+    assert isinstance(body, list)
+    for row in body:
+        assert "department" in row
+        assert "avg_salary" in row
+        assert "employee_count" in row
