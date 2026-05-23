@@ -14,10 +14,12 @@ def get_employee_by_id(db, employee_id: str):
     return db.query(Employee).filter(Employee.id == employee_id).first()
 
 
-def get_all_employees(db, skip: int = 0, limit: int = 10):
+def get_all_employees(db, skip: int = 0, limit: int = 10, search: str | None = None):
+    query = db.query(Employee)
+    if search:
+        query = query.filter(Employee.full_name.ilike(f"%{search}%"))
     return (
-        db.query(Employee)
-        .order_by(Employee.created_at.desc())
+        query.order_by(Employee.created_at.desc())
         .offset(skip)
         .limit(limit)
         .all()

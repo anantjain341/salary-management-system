@@ -4,11 +4,12 @@ import type { Employee, EmployeeCreate } from "../types";
 export async function getEmployees(
   page: number = 1,
   pageSize: number = 10,
+  search?: string,
 ): Promise<Employee[]> {
   const skip = (page - 1) * pageSize;
-  const response = await client.get<Employee[]>("/employees", {
-    params: { skip, limit: pageSize },
-  });
+  const params: Record<string, string | number> = { skip, limit: pageSize };
+  if (search) params.search = search;
+  const response = await client.get<Employee[]>("/employees", { params });
   return response.data;
 }
 

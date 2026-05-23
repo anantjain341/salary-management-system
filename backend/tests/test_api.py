@@ -61,6 +61,19 @@ def test_update_employee_via_api(client):
     assert response.json()["salary"] == 80000
 
 
+def test_update_employee_with_hire_date_via_api(client):
+    created = client.post(
+        "/employees", json=_employee_payload(hire_date="2024-06-01")
+    ).json()
+
+    response = client.put(
+        f"/employees/{created['id']}", json={"hire_date": "2025-01-15"}
+    )
+
+    assert response.status_code == 200
+    assert response.json()["hire_date"] == "2025-01-15"
+
+
 def test_delete_employee_via_api(client):
     created = client.post("/employees", json=_employee_payload()).json()
 
@@ -100,6 +113,22 @@ def test_get_top_paying_titles_via_api(client):
 
     assert response.status_code == 200
     assert isinstance(response.json(), list)
+
+
+def test_search_employees_by_name(client):
+    client.post("/employees", json=_employee_payload(
+        full_name="John Smith", email="john@example.com"
+    ))
+    client.post("/employees", json=_employee_payload(
+        full_name="Mary Jones", email="mary@example.com"
+    ))
+
+    response = client.get("/employees", params={"search": "John"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert len(body) == 1
+    assert "John" in body[0]["full_name"]
 
 
 def test_get_employees_count_via_api(client):

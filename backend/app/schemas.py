@@ -14,6 +14,17 @@ class EmployeeCreate(BaseModel):
     hire_date: date
 
 
+class EmployeeUpdate(BaseModel):
+    full_name: str | None = None
+    email: str | None = None
+    job_title: str | None = None
+    department: str | None = None
+    country: str | None = None
+    salary: float | None = None
+    employment_type: str | None = None
+    hire_date: date | None = None
+
+
 class EmployeeResponse(EmployeeCreate):
     id: str
     created_at: datetime

@@ -4,7 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
-from app.schemas import EmployeeCreate, EmployeeResponse
+from app.schemas import EmployeeCreate, EmployeeResponse, EmployeeUpdate
 from app.services.employee_service import (
     count_employees,
     create_employee,
@@ -23,8 +23,13 @@ def create(payload: EmployeeCreate, db: Session = Depends(get_db)):
 
 
 @router.get("", response_model=List[EmployeeResponse])
-def list_all(skip: int = 0, limit: int = 10, db: Session = Depends(get_db)):
-    return get_all_employees(db, skip=skip, limit=limit)
+def list_all(
+    skip: int = 0,
+    limit: int = 10,
+    search: str | None = None,
+    db: Session = Depends(get_db),
+):
+    return get_all_employees(db, skip=skip, limit=limit, search=search)
 
 
 @router.get("/count")
@@ -41,8 +46,14 @@ def get_one(employee_id: str, db: Session = Depends(get_db)):
 
 
 @router.put("/{employee_id}", response_model=EmployeeResponse)
-def update(employee_id: str, update_data: dict, db: Session = Depends(get_db)):
-    employee = update_employee(db, employee_id, update_data)
+def update(
+    employee_id: str,
+    payload: EmployeeUpdate,
+    db: Session = Depends(get_db),
+):
+    employee = update_employee(
+        db, employee_id, payload.model_dump(exclude_unset=True)
+    )
     if employee is None:
         raise HTTPException(status_code=404, detail="Employee not found")
     return employee

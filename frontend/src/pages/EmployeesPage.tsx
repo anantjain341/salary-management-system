@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   Table,
   TableBody,
@@ -26,6 +25,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import EmployeeForm from "../components/EmployeeForm";
+import EmployeeSearch from "../components/EmployeeSearch";
 import {
   createEmployee,
   deleteEmployee,
@@ -55,7 +55,7 @@ export default function EmployeesPage() {
   const [total, setTotal] = useState<number | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [search, setSearch] = useState("");
+  const [selectedEmployees, setSelectedEmployees] = useState<Employee[]>([]);
   const [editing, setEditing] = useState<Employee | null>(null);
   const [creating, setCreating] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<Employee | null>(null);
@@ -81,45 +81,59 @@ export default function EmployeesPage() {
     load();
   }, [load]);
 
-  const filtered = employees.filter((e) =>
-    e.full_name.toLowerCase().includes(search.toLowerCase()),
-  );
+  const isFiltered = selectedEmployees.length > 0;
+  const displayed = isFiltered ? selectedEmployees : employees;
 
   const handleCreate = async (data: EmployeeCreate) => {
-    await createEmployee(data);
-    setCreating(false);
-    await load();
+    try {
+      await createEmployee(data);
+      setCreating(false);
+      await load();
+    } catch (err) {
+      console.error("Failed to create employee:", err);
+      throw err;
+    }
   };
 
   const handleUpdate = async (data: EmployeeCreate) => {
     if (!editing) return;
-    await updateEmployee(editing.id, data);
-    setEditing(null);
-    await load();
+    try {
+      const updated = await updateEmployee(editing.id, data);
+      setSelectedEmployees((prev) =>
+        prev.map((e) => (e.id === updated.id ? updated : e)),
+      );
+      setEditing(null);
+      await load();
+    } catch (err) {
+      console.error("Failed to update employee:", err);
+      throw err;
+    }
   };
 
   const handleDelete = async () => {
     if (!deleteTarget) return;
-    await deleteEmployee(deleteTarget.id);
-    setDeleteTarget(null);
-    await load();
+    const targetId = deleteTarget.id;
+    try {
+      await deleteEmployee(targetId);
+      setSelectedEmployees((prev) => prev.filter((e) => e.id !== targetId));
+      setDeleteTarget(null);
+      await load();
+    } catch (err) {
+      console.error("Failed to delete employee:", err);
+    }
   };
 
   return (
     <div className="container mx-auto px-4 py-6 space-y-4">
       <div className="flex items-center justify-between gap-4">
-        <Input
-          placeholder="Search by name…"
-          value={search}
-          onChange={(e) => setSearch(e.target.value)}
-          className="max-w-sm"
+        <EmployeeSearch
+          selected={selectedEmployees}
+          onChange={setSelectedEmployees}
         />
         <Button onClick={() => setCreating(true)}>Add employee</Button>
       </div>
 
-      {error && (
-        <p className="text-sm text-destructive">Error: {error}</p>
-      )}
+      {error && <p className="text-sm text-destructive">Error: {error}</p>}
 
       <div className="overflow-x-auto w-full rounded-md border">
         <Table>
@@ -137,22 +151,22 @@ export default function EmployeesPage() {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {loading && (
+            {loading && !isFiltered && (
               <TableRow>
                 <TableCell colSpan={9} className="text-center text-muted-foreground">
                   Loading…
                 </TableCell>
               </TableRow>
             )}
-            {!loading && filtered.length === 0 && (
+            {(!loading || isFiltered) && displayed.length === 0 && (
               <TableRow>
                 <TableCell colSpan={9} className="text-center text-muted-foreground">
                   No employees found.
                 </TableCell>
               </TableRow>
             )}
-            {!loading &&
-              filtered.map((employee) => (
+            {(!loading || isFiltered) &&
+              displayed.map((employee) => (
                 <TableRow key={employee.id}>
                   <TableCell className="font-medium">
                     {employee.full_name}
@@ -192,32 +206,42 @@ export default function EmployeesPage() {
         </Table>
       </div>
 
-      <div className="flex items-center justify-between">
-        <p className="text-sm text-muted-foreground">
-          Page {page} · showing {filtered.length} of {employees.length} on this page
-          {total !== null && ` · ${total} total`}
-        </p>
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            disabled={page === 1 || loading}
-            onClick={() => setPage((p) => Math.max(1, p - 1))}
-          >
-            Previous
-          </Button>
-          <Button
-            variant="outline"
-            disabled={
-              loading ||
-              employees.length < PAGE_SIZE ||
-              (total !== null && page * PAGE_SIZE >= total)
-            }
-            onClick={() => setPage((p) => p + 1)}
-          >
-            Next
-          </Button>
+      {!isFiltered && (
+        <div className="flex items-center justify-between">
+          <p className="text-sm text-muted-foreground">
+            Page {page} · showing {employees.length} on this page
+            {total !== null && ` · ${total} total`}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              variant="outline"
+              disabled={page === 1 || loading}
+              onClick={() => setPage((p) => Math.max(1, p - 1))}
+            >
+              Previous
+            </Button>
+            <Button
+              variant="outline"
+              disabled={
+                loading ||
+                employees.length < PAGE_SIZE ||
+                (total !== null && page * PAGE_SIZE >= total)
+              }
+              onClick={() => setPage((p) => p + 1)}
+            >
+              Next
+            </Button>
+          </div>
         </div>
-      </div>
+      )}
+
+      {isFiltered && (
+        <p className="text-sm text-muted-foreground">
+          Showing {selectedEmployees.length} selected employee
+          {selectedEmployees.length === 1 ? "" : "s"}.
+          Clear the search to see the full list.
+        </p>
+      )}
 
       <Dialog open={creating} onOpenChange={(open) => !open && setCreating(false)}>
         <DialogContent>
