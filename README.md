@@ -1,5 +1,11 @@
 # Salary Management System
 
+## 🎬 Demo
+[▶ Watch the video demo](https://www.loom.com/share/f701f723b8b54d7c8fa6b960581c0e67)
+
+**Live app:** https://salary-management-system-seven.vercel.app  
+**Backend API:** https://salary-management-system-mx2x.onrender.com/docs
+
 A minimal yet usable salary management tool for an organization with ~10,000
 employees. Built for the Incubyte TDD assessment with strict red-green-refactor
 discipline on the backend.
