@@ -38,7 +38,7 @@ def count(search: str | None = None, db: Session = Depends(get_db)):
     return {"total": count_employees(db, search=search)}
 
 
-@router.post("/seed", status_code=200)
+@router.get("/seed", status_code=200)
 def run_seed(db: Session = Depends(get_db)):
     from seed.seed import seed_employees
     count = db.query(Employee).count()
