@@ -4,6 +4,7 @@ from fastapi import APIRouter, Depends, HTTPException, Response, status
 from sqlalchemy.orm import Session
 
 from app.database import get_db
+from app.models import Employee
 from app.schemas import EmployeeCreate, EmployeeResponse, EmployeeUpdate
 from app.services.employee_service import (
     count_employees,
@@ -35,6 +36,16 @@ def list_all(
 @router.get("/count")
 def count(search: str | None = None, db: Session = Depends(get_db)):
     return {"total": count_employees(db, search=search)}
+
+
+@router.post("/seed", status_code=200)
+def run_seed(db: Session = Depends(get_db)):
+    from seed.seed import seed_employees
+    count = db.query(Employee).count()
+    if count > 0:
+        return {"message": f"Already seeded with {count} employees"}
+    seed_employees(db)
+    return {"message": "Seeded 10,000 employees successfully"}
 
 
 @router.get("/{employee_id}", response_model=EmployeeResponse)
