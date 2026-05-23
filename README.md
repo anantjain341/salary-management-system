@@ -15,6 +15,33 @@ discipline on the backend.
   job titles (bar chart); average salary for a specific job title in a country;
   department-level breakdown across the org.
 
+## Live deployment
+
+| | URL |
+| --- | --- |
+| Frontend (Vercel) | https://salary-management-system-seven.vercel.app |
+| Backend (Render) | https://salary-management-system-mx2x.onrender.com |
+| API docs | https://salary-management-system-mx2x.onrender.com/docs |
+
+**Important:** Render's free tier uses an ephemeral filesystem. The SQLite
+database is wiped on every redeploy, restart, or scale-to-zero cycle. To
+populate the database after any deploy, hit the seed endpoint once:
+
+```bash
+curl -X POST https://salary-management-system-mx2x.onrender.com/employees/seed
+```
+
+The endpoint is idempotent — it inserts 10,000 employees on the first call and
+returns `Already seeded with N employees` on every subsequent call, so it's
+safe to retry.
+
+Render's free tier also sleeps after 15 minutes of inactivity; the first
+request after sleep takes ~30 seconds to wake the dyno. Subsequent requests
+are fast.
+
+See [`docs/TRADEOFFS.md`](docs/TRADEOFFS.md) for the discussion of SQLite
+persistence on Render and the PostgreSQL migration path.
+
 ## Stack
 
 | Layer | Choice |
@@ -110,6 +137,7 @@ tests/test_seed.py .............. PASSED
 | POST | `/employees` | Create an employee (returns 201) |
 | GET | `/employees` | List employees. Query: `skip`, `limit`, `search` |
 | GET | `/employees/count` | `{ total: N }`. Query: `search` (optional) |
+| POST | `/employees/seed` | One-time ops endpoint to populate the deployed DB with 10k rows. Idempotent — refuses if rows already exist |
 | GET | `/employees/{id}` | Fetch one. 404 if missing |
 | PUT | `/employees/{id}` | Partial update (`EmployeeUpdate` schema) |
 | DELETE | `/employees/{id}` | 204 on success, 404 if missing |
@@ -130,7 +158,7 @@ salary-management-system/
 │   │   ├── schemas.py           # Pydantic: EmployeeCreate, Update, Response
 │   │   ├── main.py              # FastAPI app, lifespan, CORS
 │   │   ├── routers/
-│   │   │   ├── employees.py     # /employees CRUD + /count
+│   │   │   ├── employees.py     # /employees CRUD + /count + /seed
 │   │   │   └── insights.py      # /insights/* analytics endpoints
 │   │   └── services/
 │   │       ├── employee_service.py
@@ -139,7 +167,7 @@ salary-management-system/
 │   │   ├── seed.py              # bulk_insert_mappings 10k rows
 │   │   ├── first_names.txt
 │   │   └── last_names.txt
-│   └── tests/                   # 32 pytest tests
+│   └── tests/                   # 35 pytest tests
 ├── frontend/
 │   └── src/
 │       ├── api/                 # axios client + typed endpoint helpers

@@ -34,6 +34,65 @@ a driver. We use `func.ilike` (which PostgreSQL implements natively) and
 SQLAlchemy `Date`/`DateTime` types, so no SQLite-specific code needs to be
 rewritten.
 
+## SQLite persistence on Render's free tier
+
+**Chose:** Live with the ephemeral filesystem; expose a one-time seed endpoint
+to repopulate after each deploy.
+
+**The constraint:** Render's free web service tier does not give the container
+a persistent disk. The SQLite database file written under the app's working
+directory survives only for the lifetime of that container instance. Any of
+the following resets it back to empty:
+
+- A new deploy (every push to `main`).
+- A restart triggered from the dashboard.
+- The free-tier idle-sleep / spin-down cycle (after 15 minutes of inactivity).
+- Any internal restart Render performs (OOM, health-check failures, etc.).
+
+**Mitigation we picked:** A `POST /employees/seed` endpoint that calls the
+same `seed_employees()` used by the local CLI. It's idempotent — checks the
+row count before inserting and refuses to run if the table is non-empty — so
+it's safe to curl after every deploy without worrying about duplicate data.
+The expected workflow after a deploy is:
+
+```bash
+curl -X POST https://<render-url>/employees/seed
+```
+
+…and the frontend immediately has 10,000 rows to display.
+
+**Why this is acceptable here:**
+
+- The assessment scope is a demo, not a system of record. There's no
+  user-generated data to preserve across deploys — the only data is the seed.
+- The seed runs in well under a second on Render's tier; the curl is
+  effectively instant.
+- It keeps deployment trivially simple: no database to provision, no
+  connection string to manage, no migrations to run.
+
+**What we give up:**
+
+- Any data the HR Manager adds through the UI is lost on the next deploy.
+  Fine for a demo, unacceptable for production.
+- The seed endpoint is unauthenticated. Anyone hitting the Render URL can
+  trigger it, though the idempotency guard limits the blast radius to "fills
+  an empty database with the same seed every time."
+
+**Production migration path:** Provision a Render Managed PostgreSQL instance,
+copy its `DATABASE_URL` into the web service's environment variables, and
+that's it — `app/database.py` already reads `DATABASE_URL` from env with the
+SQLite default as a fallback:
+
+```python
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./salary_management.db")
+```
+
+The SQLAlchemy models, queries, and tests don't change. The only additions
+needed for a real PostgreSQL deployment would be installing `psycopg`
+(`pip install psycopg[binary]`) and dropping the SQLite-only `PRAGMA
+journal_mode=WAL` event listener in `database.py`. Estimated work: ten
+minutes.
+
 ## Vite vs Next.js
 
 **Chose:** Vite + React (client-side SPA).
