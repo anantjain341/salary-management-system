@@ -90,6 +90,8 @@ Composite index `ix_employees_country_job_title` on `(country, job_title)`.
 | PUT    | `/employees/{employee_id}`          | Partial update. Body: `EmployeeUpdate` (all fields optional). 404 if missing. |
 | DELETE | `/employees/{employee_id}`          | Remove an employee. 204 on success, 404 if missing. |
 | GET    | `/insights/salary-stats`            | `?country=`. Returns `{ min_salary, max_salary, avg_salary }`. 404 if no employees in country. |
+| GET    | `/insights/avg-salary`              | `?country=&job_title=`. Case-insensitive title match. Returns `{ country, job_title, avg_salary }`. 404 if no match. |
+| GET    | `/insights/job-titles`              | `?country=&search=`. Distinct job titles in a country (optionally substring-filtered). Used to populate the autocomplete dropdown in the avg-salary lookup card. |
 | GET    | `/insights/top-paying-titles`       | `?country=&limit=10`. Top job titles by average salary, descending. |
 | GET    | `/insights/department-breakdown`    | Average salary and headcount per department across all countries. |
 
