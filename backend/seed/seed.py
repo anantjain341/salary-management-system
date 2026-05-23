@@ -1,6 +1,6 @@
 import random
 import uuid
-from datetime import date, datetime, timedelta
+from datetime import date, datetime, timedelta, timezone
 from pathlib import Path
 
 from app.models import Employee
@@ -49,7 +49,7 @@ def seed_employees(db, count: int = 10000, first_names=None, last_names=None):
     if last_names is None:
         last_names = _load_names(_SEED_DIR / "last_names.txt")
 
-    now = datetime.utcnow()
+    now = datetime.now(timezone.utc)
     rows = []
     for _ in range(count):
         first = random.choice(first_names)
@@ -72,3 +72,17 @@ def seed_employees(db, count: int = 10000, first_names=None, last_names=None):
 
     db.bulk_insert_mappings(Employee, rows)
     db.commit()
+
+
+if __name__ == "__main__":
+    from app.database import SessionLocal
+    db = SessionLocal()
+    try:
+        print("Seeding 10,000 employees...")
+        import time
+        start = time.time()
+        seed_employees(db)
+        elapsed = time.time() - start
+        print(f"Done! Inserted 10,000 employees in {elapsed:.2f}s")
+    finally:
+        db.close()
