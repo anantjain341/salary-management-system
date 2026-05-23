@@ -141,6 +141,111 @@ def test_get_employees_count_via_api(client):
     assert response.json() == {"total": 2}
 
 
+def test_get_employees_count_with_search_filter(client):
+    client.post("/employees", json=_employee_payload(
+        full_name="John Smith", email="john@example.com"
+    ))
+    client.post("/employees", json=_employee_payload(
+        full_name="Mary Jones", email="mary@example.com"
+    ))
+    client.post("/employees", json=_employee_payload(
+        full_name="Johnathan Doe", email="johnathan@example.com"
+    ))
+
+    response = client.get("/employees/count", params={"search": "john"})
+
+    assert response.status_code == 200
+    assert response.json() == {"total": 2}
+
+
+def test_get_avg_salary_by_title_via_api(client):
+    client.post("/employees", json=_employee_payload(
+        email="e1@example.com", country="India",
+        job_title="Engineer", salary=40000,
+    ))
+    client.post("/employees", json=_employee_payload(
+        email="e2@example.com", country="India",
+        job_title="Engineer", salary=60000,
+    ))
+    client.post("/employees", json=_employee_payload(
+        email="e3@example.com", country="India",
+        job_title="Manager", salary=90000,
+    ))
+
+    response = client.get(
+        "/insights/avg-salary",
+        params={"country": "India", "job_title": "Engineer"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["avg_salary"] == 50000.0
+
+
+def test_get_avg_salary_by_title_returns_404_when_no_match(client):
+    response = client.get(
+        "/insights/avg-salary",
+        params={"country": "Antarctica", "job_title": "Penguin Wrangler"},
+    )
+
+    assert response.status_code == 404
+
+
+def test_get_avg_salary_by_title_is_case_insensitive(client):
+    client.post("/employees", json=_employee_payload(
+        email="se@example.com", country="India",
+        job_title="Software Engineer", salary=80000,
+    ))
+
+    response = client.get(
+        "/insights/avg-salary",
+        params={"country": "India", "job_title": "software engineer"},
+    )
+
+    assert response.status_code == 200
+    assert response.json()["avg_salary"] == 80000.0
+
+
+def test_get_job_titles_returns_distinct_titles_for_country(client):
+    client.post("/employees", json=_employee_payload(
+        email="e1@example.com", country="India", job_title="Engineer",
+    ))
+    client.post("/employees", json=_employee_payload(
+        email="e2@example.com", country="India", job_title="Engineer",
+    ))
+    client.post("/employees", json=_employee_payload(
+        email="e3@example.com", country="India", job_title="Manager",
+    ))
+    client.post("/employees", json=_employee_payload(
+        email="e4@example.com", country="USA", job_title="Director",
+    ))
+
+    response = client.get("/insights/job-titles", params={"country": "India"})
+
+    assert response.status_code == 200
+    body = response.json()
+    assert sorted(body) == ["Engineer", "Manager"]
+
+
+def test_get_job_titles_filters_by_search_substring(client):
+    for title in ["Software Engineer", "Senior Engineer", "Engineering Manager", "Sales Lead"]:
+        client.post("/employees", json=_employee_payload(
+            email=f"{title.lower().replace(' ', '')}@example.com",
+            country="India", job_title=title,
+        ))
+
+    response = client.get(
+        "/insights/job-titles",
+        params={"country": "India", "search": "eng"},
+    )
+
+    assert response.status_code == 200
+    body = response.json()
+    assert "Sales Lead" not in body
+    assert "Software Engineer" in body
+    assert "Senior Engineer" in body
+    assert "Engineering Manager" in body
+
+
 def test_get_department_breakdown_via_api(client):
     client.post("/employees", json=_employee_payload(
         email="eng@example.com", department="Engineering", salary=70000

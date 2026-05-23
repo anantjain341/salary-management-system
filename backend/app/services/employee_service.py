@@ -26,8 +26,11 @@ def get_all_employees(db, skip: int = 0, limit: int = 10, search: str | None = N
     )
 
 
-def count_employees(db) -> int:
-    return db.query(Employee).count()
+def count_employees(db, search: str | None = None) -> int:
+    query = db.query(Employee)
+    if search:
+        query = query.filter(Employee.full_name.ilike(f"%{search}%"))
+    return query.count()
 
 
 def update_employee(db, employee_id: str, update_data: dict):

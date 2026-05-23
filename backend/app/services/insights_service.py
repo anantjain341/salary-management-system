@@ -25,12 +25,23 @@ def get_salary_stats(db, country: str):
 def get_avg_salary_by_title(db, country: str, job_title: str):
     result = (
         db.query(func.avg(Employee.salary))
-        .filter(Employee.country == country, Employee.job_title == job_title)
+        .filter(
+            Employee.country == country,
+            Employee.job_title.ilike(job_title),
+        )
         .scalar()
     )
     if result is None:
         return None
     return float(result)
+
+
+def get_distinct_job_titles(db, country: str, search: str | None = None) -> list[str]:
+    query = db.query(Employee.job_title).filter(Employee.country == country)
+    if search:
+        query = query.filter(Employee.job_title.ilike(f"%{search}%"))
+    rows = query.distinct().order_by(Employee.job_title.asc()).all()
+    return [row[0] for row in rows]
 
 
 def get_top_paying_titles(db, country: str, limit: int = 10):

@@ -24,3 +24,26 @@ export async function getDepartmentBreakdown(): Promise<DepartmentStat[]> {
   );
   return response.data;
 }
+
+export async function getAvgSalaryByTitle(
+  country: string,
+  jobTitle: string,
+): Promise<number> {
+  const response = await client.get<{ avg_salary: number }>(
+    "/insights/avg-salary",
+    { params: { country, job_title: jobTitle } },
+  );
+  return response.data.avg_salary;
+}
+
+export async function getJobTitles(
+  country: string,
+  search?: string,
+): Promise<string[]> {
+  const params: Record<string, string> = { country };
+  if (search) params.search = search;
+  const response = await client.get<string[]>("/insights/job-titles", {
+    params,
+  });
+  return response.data;
+}

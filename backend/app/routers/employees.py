@@ -33,8 +33,8 @@ def list_all(
 
 
 @router.get("/count")
-def count(db: Session = Depends(get_db)):
-    return {"total": count_employees(db)}
+def count(search: str | None = None, db: Session = Depends(get_db)):
+    return {"total": count_employees(db, search=search)}
 
 
 @router.get("/{employee_id}", response_model=EmployeeResponse)
